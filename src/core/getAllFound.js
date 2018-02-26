@@ -1,5 +1,10 @@
+const fs = require('fs')
+const path = require('path')
 const axios = require('axios')
 const chalk = require('chalk')
+const {
+  fp,
+} = require('./util.js')
 
 function get(page, count = 200, onlySale = 0) {
   return axios.request({
@@ -36,26 +41,19 @@ function genData(index = 1, count = 200) {
   return get(index, count).then(data => {
     const record = data.record
     const datas = data.datas || []
-    const tmp = {}
     datas.forEach(item => {
-      all[item[0]] = {
-        code: item[0],
-        name: item[1],
-      }
-      tmp[item[0]] = {
-        code: item[0],
-        name: item[1],
-      }
+      // 压缩存储格式 => {code: name} 键值对
+      all[item[0]] = item[1]
     })
-    console.log(tmp)
     pages = Math.ceil(data.record / count) + 2
     rows += datas.length
     index += 1
-    console.log(chalk.green(`index: ${index}, rows: ${rows}, pages: ${pages}, record: ${data.record}`))
+    console.log('请求结果 => { index: ' + chalk.green(`${index}/${pages}`) +
+      `, rows: `+ chalk.green(`${rows}/${data.record}`) + ' }')
+    // 启动链式请求，如果还有数据随机timeout后再次发起请求，否则退出
     return new Promise(resolve => {
       if (rows < record && index < pages) {
         const timeout = Math.random() * 1000
-        console.log(chalk.green(`next fetch timeout: ${timeout}`))
         setTimeout(() => {
           resolve(genData(index, count))
         }, timeout)
@@ -66,6 +64,21 @@ function genData(index = 1, count = 200) {
   })
 }
 
-genData().then(() => {
-  console.log(chalk.green('fetch data success'))
-})
+function write() {
+  const fundsPath = fp('assets/data/funds.js')
+  genData().then(() => {
+    console.log(chalk.green('write to file: ') + `${fundsPath}`)
+    fs.writeFile(fundsPath, JSON.stringify(all), err => {
+      console.timeEnd(1)
+      if (err) {
+        throw err
+      }
+      console.log(chalk.green('write success'))
+    })
+  }).catch(err => {
+    console.log(chalk.red(err))
+  })
+}
+
+write()
+
