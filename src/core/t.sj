@@ -1,13 +1,13 @@
 const fs = require('fs')
-const path = require('path')
 const axios = require('axios')
 const chalk = require('chalk')
 const {
-  fp,
+  resolve,
+  request
 } = require('./util.js')
 
 function get(page, count = 200, onlySale = 0) {
-  return axios.request({
+  return request({
     method: 'get',
     baseURL: 'http://fund.eastmoney.com',
     url: '/Data/Fund_JJJZ_Data.aspx',
@@ -23,15 +23,12 @@ function get(page, count = 200, onlySale = 0) {
       atfc: '',
       onlySale,        // 是否可购买 1: 可购 0: 全部
     }
-  }).then(result => {
-    eval(result.data)
+  }, res => {
+    eval(res.data)
     return db || {}
-  }).catch(err => {
-    console.log(chalk.red('request failed with errors.\n'))
-    console.log(err)
-    console.log(chalk,red('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'))
   })
 }
+
 
 let pages = 40
 let rows = 0
@@ -65,7 +62,7 @@ function genData(index = 1, count = 200) {
 }
 
 function write() {
-  const fundsPath = fp('assets/data/funds.js')
+  const fundsPath = resolve('assets/data/funds.js')
   genData().then(() => {
     console.log(chalk.green('write to file: ') + `${fundsPath}`)
     fs.writeFile(fundsPath, JSON.stringify(all), err => {
@@ -80,5 +77,5 @@ function write() {
   })
 }
 
-write()
+// write()
 
